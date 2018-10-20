@@ -110,4 +110,8 @@ instance Applicative f => InfluenceDistribution f (Location -> InverseDistanceWe
           doAllocation Nothing = 0.0
 ```
 
-* EDIT_NOTE: explain the usage of the polymorphic `a`
+Note that we made use of the polymorphic `a` in `Member a`, `Community a` and within the `InfluenceDistribution` class, taking advantage of the strong relationship to verify that the operation can only be done with a `Registry` that is able to fetch the location of the members, in this case we used the function `load` from the `Registry` to fetch a function that given a `Location`, it returns the inverse distance of the member, allowing us to use the `Registry` as the only source of truth of the data of the members, and letting the data type `GeolocationBased` carry the context of the distribution and dictate the point of reference for the weighting. 
+
+This final implementation should work as an exceptional example for implementing infinite more influence allocation functions, providing the promised building blocks or exchangeable modules for distributing influence on a community, effectively changing the behaviour of the collaborative decision-making.
+
+## Decision Resolution
