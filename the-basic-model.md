@@ -92,3 +92,22 @@ data Totalitarian a = Dictator (Member a)
 instance Applicative f => InfluenceDistribution f a (Totalitarian a) where
   dist _ member (Dictator dic) = pure $ if member == dic then 1.0 else 0.0
 ```
+
+### Geolocation Based
+
+We have achieved a good level of polymorphism and generality on our definition, which allows us to be a notch more creative about how we may do the distribution. Depending on the domain, more complex notions of distributions can be done, for example, if the issue related to the decision that has to be done, has a position within its nature, then we can weight the members based on their [inverse distance](https://en.wikipedia.org/wiki/Inverse_distance_weighting) to the issue, i.e. members closer to the issue have more influence than others.
+
+```haskell
+type Location = String
+
+type InverseDistanceWeight = Rational
+
+data GeolocationBased = GeoBased Location
+
+instance Applicative f => InfluenceDistribution f (Location -> InverseDistanceWeight) GeolocationBased where
+  dist community member (GeoBased location) = fmap doAllocation (load community member)
+    where doAllocation (Just weight) = weight location
+          doAllocation Nothing = 0.0
+```
+
+* EDIT_NOTE: explain the usage of the polymorphic `a`
