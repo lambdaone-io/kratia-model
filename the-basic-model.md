@@ -116,13 +116,13 @@ This final implementation should work as an exceptional example for implementing
 
 ## Decision Resolution
 
-Before we work on the notion of vote collection and to complete the notion of a decision system, we need to provide the blocks required to calculate the final outcome of the decision once the voting has ended; we will model the final voting as a mapping between the proposals in the ballot and an aggregation or accumulation of influence `P |-> Infl`, in other words, all the accumulated influence each proposal obtained by adding the votes of the members, and we will call it an `InfluenceAllocation`.
+Before we work on the notion of vote collection and to complete the notion of a decision system, we need to provide the blocks required to calculate the final outcome of the decision once the voting has ended; we will model the final voting as a mapping between the proposals in the ballot and an aggregation or accumulation of influence `P |-> Infl`, in other words, all the accumulated influence each proposal obtained by summing the votes of the members, and we will call it an `InfluenceAllocation`.
 
 ```haskell
 data InfluenceAllocation p = InflAlloc (Map p Influence)
 ```
 
-Given one decision, different InfluenceAllocation instances might come out of the voting process, and the added influence in the allocation might be less or equal to the total theoretical influence of the whole community (dictated by the influence distribution function), this is so to model the turnout on the voting process (that is the number of members that actually voted), if the voting process ends and if not every member voted, it might be that the added influence of the InfluenceAllocation is less than the total influence distributed on the community.
+Given one decision, different InfluenceAllocation instances might come out of the voting process, and the summed influence in the allocation might be less or equal to the total theoretical influence of the whole community (dictated by the influence distribution function), this is so to model the turnout on the voting process (that is the number of members that actually voted), if the voting process ends and if not every member voted, it might be that the summed influence of the InfluenceAllocation is less than the total influence distributed on the community.
 
 To model the decision resolution function we will write something similar as in the influence distribution.
 
