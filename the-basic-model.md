@@ -115,3 +115,75 @@ Note that we made use of the polymorphic `a` in `Member a`, `Community a` and wi
 This final implementation should work as an exceptional example for implementing infinite more influence allocation functions, providing the promised building blocks or exchangeable modules for distributing influence on a community, effectively changing the behaviour of the collaborative decision-making.
 
 ## Decision Resolution
+
+Before we work on the notion of vote collection and to complete the notion of a decision system, we need to provide the blocks required to calculate the final outcome of the decision once the voting has ended; we will model the final voting as a mapping between the proposals in the ballot and an aggregation or accumulation of influence `P |-> Infl`, in other words, all the accumulated influence each proposal obtained by adding the votes of the members, and we will call it an `InfluenceAllocation`.
+
+```haskell
+data InfluenceAllocation p = InflAlloc (Map p Influence)
+```
+
+Given one decision, different InfluenceAllocation instances might come out of the voting process, and the added influence in the allocation might be less or equal to the total theoretical influence of the whole community (dictated by the influence distribution function), this is so to model the turnout on the voting process (that is the number of members that actually voted), if the voting process ends and if not every member voted, it might be that the added influence of the InfluenceAllocation is less than the total influence distributed on the community.
+
+To model the decision resolution function we will write something similar as in the influence distribution.
+
+```haskell
+class DecisionResolution p method where
+	resolve :: InfluenceAllocation p -> Influence -> method -> [p]
+```
+
+Notice that we have made a normal type class instead of one that parametrizes over an effect, that is because, in contrast to the influence distribution function, the decision resolution is pure, it does not depend on the current state of the community's registry or in the current state of the members, this allows us to make a function that takes the outcome of a voting session and the total distributed influence over the community, and return 0, 1 or several proposals that resolve, with such list we can model a decision that didn't resolve at all, or that has several outcomes.
+
+It is also valuable to note that we are parametrizing the method of the resolution, allowing us once more to distinguish between different methods and bring context to the computation.
+
+### Majority
+
+The first decision resolution method we will examplify is also probably the most common; Majority is the resolution method where the proposal with the most accumulated influence, passes.
+
+```haskell
+data Majority = Majority
+
+instance DecisionResolution p Majority where
+  resolve (InflAlloc mapping) _ _ = fst result
+    where result = foldlWithKey combine ([], 0.0) mapping
+          combine :: ([p], Influence) -> p -> Influence -> ([p], Influence)
+          combine (lastProposals, lastInfl) proposal influence
+            | lastInfl < influence = ([proposal], influence)
+            | lastInfl == influence && lastInfl /= 0.0 = ((proposal : lastProposals), influence)
+            | otherwise = ([], 0.0)
+```
+
+Notice that this method allows for ties, so if there are two or more proposals with the same influence, they all will be part of the outcome; and also it allows for non-resolution when every proposal had 0 influence accumulated. As you might see, there could be other potential implementations of the majority method, like the one which does not resolve if there are ties, i.e. `if length result > 1 then [] else result`.
+
+### Low Inertia Resolution with Binary Proposals
+
+The decision resolution function can also specialize in the type of proposals, for the next example we will give another basic type, the binary proposals.
+
+```haskell
+data BinaryProposal = Yes | No
+```
+
+Members can simply vote yes or no, and be used in the notion of low inertia resolution, this means that only the `Yes` proposal passes if it accumulates a percentage of the total distributed influence, that is:
+
+```haskell
+                             -- A number in [1, 0)
+data LowInertiaResolution = LIR Rational
+```
+
+Here the data constructor wraps a rational number between 1 and 0, e.g. if such number is 0.7, it models the required 70% of influence to be allocated on the `Yes` proposal.
+
+```haskell
+instance DecisionResolution BinaryProposal LowInertiaResolution where
+  resolve (InflAlloc mapping) total (LIR required) =
+      if accumulated >= requiredInfluence then [Yes] else [No]
+    where requiredInfluence = total * required
+          accumulated = foldlWithKey combine 0.0 mapping
+          combine :: Influence -> BinaryProposal -> Influence -> Influence
+          combine acc Yes x = acc + x
+          combine acc No _ = acc
+```
+
+If we model the resolution method "Unanimity" as the one that requires everyone to vote `Yes` in order for the decision to pass, one could trivially proof that unanimity is a resolution method with binary proposals and low inertia resolution with `LIR 1.0`. This is the first example of the Kratia model providing equational reasoning to the complex phenomena of collaborative decision making.
+
+### Turnout requirements and other validations
+
+Every resolution method could make turnout requirements by using the total influence on the second argument of the decision resolution function, although when connecting with the rest of the system, one may need to make validation on the congruency of the influence, that is, it is an invariant that the sum of the influence allocated on each proposal, is equal or less than the total distributed influence on the community.
