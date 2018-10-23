@@ -70,13 +70,13 @@ As you can see, `dist` has a stronger restriction now, it creates a relation bet
 
 ### Democracy
 
-Given the class `InflueceDistribution`, now we have a simple dsl to model different distributions of influence, the simplest ones being democracy and totalitarianism since those are the 2 extremes of the distribution, i.e. all influence to one member or the same influence to each member. 
+Given the class `InfluenceDistribution`, now we have a simple dsl to model different distributions of influence, the simplest ones being democracy and totalitarianism since those are the 2 extremes of the distribution, i.e. all influence to one member or the same influence to each member.
 
 ```haskell
 data Democratic = Democratic
 
 instance Functor f => InfluenceDistribution f a Democratic where
-  alloc community member _ = fmap doAllocation (isMember community member)
+  dist community member _ = fmap doAllocation (isMember community member)
     where doAllocation True = 1.0
           doAllocation False = 0.0
 ```
