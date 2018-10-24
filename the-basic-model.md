@@ -187,3 +187,46 @@ If we model the resolution method "Unanimity" as the one that requires everyone 
 ### Turnout requirements and other validations
 
 Every resolution method could make turnout requirements by using the total influence on the second argument of the decision resolution function, although when connecting with the rest of the system, one may need to make validation on the congruency of the influence, that is, it is an invariant that the sum of the influence allocated on each proposal, is equal or less than the total distributed influence on the community.
+
+## Voting Process
+
+Finally, for the basic model to be complete, we are ought to as well model the process of collection of votes. Proposals are presented to the members in ballots, which are non-empty lists of the different possible proposals. And votes are relations between a ballot, a member and an influence allocation on the ballot, that is, the act of voting is for a member to use all or partial influence in allocating it on zero, one or several of the proposals available on the ballot.
+
+```haskell
+data Ballot p = Ballot (NonEmpty p)
+
+data Vote p a = Vote (Ballot p) (Member a) (InfluenceAllocation p)
+```
+
+So a traditional single proposal vote would be modeled by each member being restricted to allocating all of their influence to only 1 proposal on the ballot. But our model is more generic, allowing for a member to split it's influence on several proposals. Also, note that an invariant that should be validated is that the influence allocation is coherent with the ballot and the amount of influence distributed to the member, so given different influence distribution methods, the vote might or might not be valid.
+
+Then, we will model a ballot box, which is as well a reference to an entity. A proof of vote, which is also a reference to an existing record that proves that a member has previously voted.  
+
+```haskell
+data BallotBox p = BallotBoxRef Address
+
+data ProofOfVote p a = ProofOfVoteRef Address (Member a)
+```
+
+Finally, we need to make a `Collector` in the same spirit that we did `Registry`, which is a mechanism that keeps the integrity of one or several ballot boxes.
+
+```haskell
+class Collector f p where
+
+  create :: Ballot p -> f (BallotBox p)
+
+  vote :: Vote p a -> BallotBox p -> f (ProofOfVote p a)
+
+  inspect :: BallotBox p -> f (InfluenceAllocation p)
+
+  close :: BallotBox p -> f ()
+```
+
+Ballot boxes are independent of the decision system, this achieves a complete decoupling from how we can decide (the decision system) to what are we going to decide (the ballot box). Although ballot boxes may become only valid given the correct influence distribution method because there might exist votes which are using more influence that they can expend. Also, ballot boxes might not compose with certain decision resolution functions, because some methods require a specific type of proposals, like binary proposals.
+
+Notice the `inspect` function, it yields an `InfluenceAllocation p` instance which represents the final voting result, that is the summed influence of each proposal which a decision resolution function takes as an argument.
+
+## The missing parts
+In the basic model, we did not take into account how the community can grow and adapt, and we did not make a comprehensive list of decision systems, i.e. all known influence distribution functions and decision resolution functions, these are going to be modeled in next sections.
+
+Also, let us remember that this is just a model, technicalities on the implementation of a Kratia Engine are left to the implementer, that is all mechanisms necessary to communicate with the actual members, how the data is stored or how everything wires together.
